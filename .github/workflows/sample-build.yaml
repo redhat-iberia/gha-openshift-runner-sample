@@ -11,7 +11,7 @@ jobs:
     name: Build image
     runs-on: arc-openshift-runner-set
     env:
-      IMAGE_NAME: buildah-sample
+      IMAGE_NAME: quay.io/rgordill/buildah-sample
       IMAGE_TAG: "0.1"
 
     steps:

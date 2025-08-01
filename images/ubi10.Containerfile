@@ -85,11 +85,11 @@ RUN chmod -R g+rwx /home/runner
 # Don't include container-selinux and remove
 # directories used by yum that are just taking
 # up space.
-RUN useradd build; dnf -y update; dnf -y reinstall shadow-utils; dnf -y install buildah fuse-overlayfs /usr/share/containers/storage.conf; rm -rf /var/cache/* /var/log/dnf* /var/log/yum.*
+RUN dnf -y install buildah \
+    && rm -rf /var/cache/* /var/log/dnf* /var/log/yum.*
 
-# Adjust storage.conf to enable Fuse storage.
-RUN sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' /usr/share/containers/storage.conf
-RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers; touch /var/lib/shared/overlay-images/images.lock; touch /var/lib/shared/overlay-layers/layers.lock
+# Use vfs storage driver in OpenShift
+RUN sed -i -e 's|^driver = "overlay"|driver = "vfs"|g' /usr/share/containers/storage.conf 
 
 # Set up environment variables to note that this is
 # not starting with usernamespace and default to
@@ -109,3 +109,5 @@ RUN dnf -y install https://dl.fedoraproject.org/pub/fedora/linux/updates/42/Ever
 RUN dnf -y install https://dl.fedoraproject.org/pub/fedora/linux/updates/42/Everything/x86_64/Packages/h/helm-3.18.4-1.fc42.x86_64.rpm \
   && dnf clean all
 
+# restore user for further commands
+USER runner
