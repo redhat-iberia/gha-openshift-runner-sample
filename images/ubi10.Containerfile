@@ -78,16 +78,34 @@ USER root
 # The way to run in OpenShift with dynamic user: change group to root and set g+rw permissions
 RUN chmod -R g+rwx /home/runner
 
-# Install GitHub CLI
+# -- Install additional software/tools used for actions by the runner
+
+# --- buildah ---
+# Source: https://catalog.redhat.com/software/containers/rhel10/buildah/6704f1db2d6a34af2266c2cd?container-tabs=dockerfile
+# Don't include container-selinux and remove
+# directories used by yum that are just taking
+# up space.
+RUN useradd build; dnf -y update; dnf -y reinstall shadow-utils; dnf -y install buildah fuse-overlayfs /usr/share/containers/storage.conf; rm -rf /var/cache/* /var/log/dnf* /var/log/yum.*
+
+# Adjust storage.conf to enable Fuse storage.
+RUN sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' /usr/share/containers/storage.conf
+RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers; touch /var/lib/shared/overlay-images/images.lock; touch /var/lib/shared/overlay-layers/layers.lock
+
+# Set up environment variables to note that this is
+# not starting with usernamespace and default to
+# isolate the filesystem with chroot.
+ENV _BUILDAH_STARTED_IN_USERNS="" BUILDAH_ISOLATION=chroot
+
+# --- GitHub CLI ---
 RUN dnf -y install 'dnf-command(config-manager)' \
   && dnf -y config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo \
   && dnf -y install gh --repo gh-cli 
 
-# Install kubectl from fedora
+# --- kubectl from fedora ---
 RUN dnf -y install https://dl.fedoraproject.org/pub/fedora/linux/updates/42/Everything/x86_64/Packages/k/kubernetes1.33-client-1.33.3-1.fc42.x86_64.rpm \
   && dnf clean all
 
-# Install helm from fedora
+# --- helm from fedora ---
 RUN dnf -y install https://dl.fedoraproject.org/pub/fedora/linux/updates/42/Everything/x86_64/Packages/h/helm-3.18.4-1.fc42.x86_64.rpm \
   && dnf clean all
 
